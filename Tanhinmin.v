@@ -13,12 +13,6 @@ Import ListNotations.
 (* 帰納的な単貧民定義 *)
 (*******************)
 
-Inductive sorted : list nat -> Prop :=
-  | sorted_nil  : sorted []
-  | sorted_cons : forall l a,
-      sorted l -> a <= hd a l ->
-      sorted (a :: l).
-
 Fixpoint list_remove (a : nat) (l : list nat) : list nat :=
   match l with
   | nil => nil
@@ -31,7 +25,7 @@ Definition removeh := list_remove.
 Definition containsh (a : nat) (h : hand) := In a h.
 
 Inductive inductive_result_is : bool -> hand -> hand -> nat -> Prop :=
-  | InductiveTerm
+  | InductiveTermLose
       (h0 h1 : hand) (r : nat)
       (Hc0 : 0 < counth h0) (Hc1 : counth h1 = 0) :
       inductive_result_is false h0 h1 r
@@ -54,7 +48,7 @@ Inductive inductive_result_is : bool -> hand -> hand -> nat -> Prop :=
 
 Example inductive_result_test1 : inductive_result_is false [2] [] 1.
 Proof.
-  apply InductiveTerm.
+  apply InductiveTermLose.
   - simpl. auto.
   - simpl. reflexivity.
 Qed.
@@ -96,6 +90,12 @@ Qed.
 (*****************)
 (* 証明のための定義 *)
 (*****************)
+
+Inductive sorted : list nat -> Prop :=
+  | sorted_nil  : sorted []
+  | sorted_cons : forall l a,
+      sorted l -> a <= hd a l ->
+      sorted (a :: l).
 
 Fixpoint sorted_list_insert (a : nat) (l : list nat) : list nat :=
   match l with
@@ -179,9 +179,9 @@ Definition mu_win_cond (h0 h1 : hand) (r : nat) : Prop :=
   inductive_result_is true h0 h1 r.
 
 
-(******************)
+(*****************)
 (* 数式に関する補題 *)
-(******************)
+(*****************)
 
 (* 補題 : min p q < p -> min p q = q *)
 Lemma min_lt_l : forall p q : nat, min p q < p -> min p q = q.
@@ -216,9 +216,9 @@ Proof.
 Qed.
 
 
-(********************)
+(*******************)
 (* リストに関する補題 *)
-(********************)
+(*******************)
 
 (* 補題 : 最小の値は必ずリスト内にある *)
 Lemma min_in : forall l : list nat,
@@ -229,7 +229,7 @@ Proof.
   - simpl in H.
     inversion H.
   - simpl.
-    destruct l as [| x2 l]. 
+    destruct l as [| x2 l].
     + simpl.
       left.
       reflexivity.
@@ -576,7 +576,7 @@ Proof.
       * assert (list_min (x1 :: list_remove a l)
                 = min x1 (list_min (list_remove a l))).
         { apply min_cons.
-          apply lt_S_n. 
+          apply lt_S_n.
           apply lt_le_trans with (m:=length l).
           - apply H0.
           - apply remove_length. }
@@ -604,7 +604,7 @@ Proof.
            reflexivity.
         -- contradiction H.
       * remember (x2 :: l) as ll.
-        simpl. 
+        simpl.
         rewrite Heqll.
         rewrite Heqll in IHl.
         rewrite Heqll in H.
@@ -790,7 +790,7 @@ Proof.
     + apply H.
     + simpl in H.
       simpl in IHl2.
-      inversion H. 
+      inversion H.
       apply IHl2.
       apply H2.
   - simpl.
@@ -895,7 +895,7 @@ Proof.
               inversion H. simpl in H3. apply H3.
 Qed.
 
-(* 補題 : removeの 値を除いてもソート済みが保たれる *)
+(* 補題 : removeの挙動 値を除いてもソート済みが保たれる *)
 Lemma sorted_remove_sorted : forall (l : list nat) (a : nat),
   sorted l -> sorted (list_remove a l).
 Proof.
@@ -930,6 +930,20 @@ Proof.
                  --- apply H7.
            ++ simpl.
               apply H3.
+Qed.
+
+(* 補題 : ソート済みリストの構成の逆 *)
+Lemma sorted_inv : forall (l : list nat) (a : nat),
+  sorted (a :: l) -> a <= hd a l.
+Proof.
+  intros.
+  destruct l as [| x l].
+  - simpl.
+    reflexivity.
+  - simpl.
+    inversion H.
+    simpl in H3.
+    apply H3.
 Qed.
 
 (* 補題 : ソート済みリストの先頭は最小値 *)
@@ -1259,7 +1273,7 @@ Proof.
     + simpl.
       apply Nat.lt_le_incl.
       apply Nat.lt_0_succ.
-  - induction l2 as [| x2 l2].
+  - destruct l2 as [| x2 l2].
     + simpl.
       reflexivity.
     + simpl.
@@ -1734,7 +1748,7 @@ Proof.
         - apply Hr. }
       assert (y1 < x1) as E2.
       { apply lt_le_trans with (m:=x).
-        - apply E1. 
+        - apply E1.
         - inversion Hs1.
           simpl in H2.
           apply H2. }
@@ -2299,7 +2313,7 @@ Proof.
               apply Hmu.
            ++ inversion Hs1.
               apply H1.
-           ++ destruct l1 as [| x2 l1]. 
+           ++ destruct l1 as [| x2 l1].
               ** simpl in Hmu.
                  rewrite E in Hmu.
                  apply Nat.lt_irrefl in Hmu.
@@ -2330,7 +2344,7 @@ Proof.
         apply lt_S_n in Hmu.
         apply Hmu.
       * inversion Hs1. apply H1.
-      * destruct l1 as [| x2 l1]. 
+      * destruct l1 as [| x2 l1].
         -- simpl in Hmu.
            rewrite E in Hmu.
            apply Nat.lt_irrefl in Hmu.
@@ -2792,12 +2806,12 @@ Proof.
 Qed.
 
 
-(*********************************)
+(********************************)
 (* μ0 > μ1 のときの手の選び方の補題 *)
-(*********************************)
+(********************************)
 
 (* 最小の札を出す条件 *)
-Definition min_or_second_cond (h0 h1 : hand) (r : nat) := 
+Definition min_or_second_cond (h0 h1 : hand) (r : nat) :=
   mu1 h0 h1 = mu h1 (removeh (secondh h0) h0).
 
 (* 補題 : 出せる札がなければパス *)
@@ -3001,7 +3015,7 @@ Qed.
 Lemma win_move_min_if_cond_ok : forall (h0 h1 : hand) (r : nat),
   ap_sorted h0 /\ ap_sorted h1 ->
   1 < counth h0 ->
-  r < minh h0 -> 
+  r < minh h0 ->
   min_or_second_cond h0 h1 r ->
   mu0 h0 h1 r > mu1 h0 h1 ->
   mu0 h1 (removeh (minh h0) h0) (minh h0)
@@ -3083,11 +3097,9 @@ Proof.
         { apply sorted_insert_cons.
           - apply sorted_split_right with (l1:=[x1;x2]).
             apply Hs0.
-          - assert (sorted (x1 :: h0)).
-            { apply sorted_remove_middle with (l1:=[x1]) (l2:=[x2]).
-              apply Hs0. }
-            inversion H.
-            apply H3. }
+          - apply sorted_inv.
+            apply sorted_remove_middle with (l1:=[x1]) (l2:=[x2]).
+            apply Hs0. }
         rewrite H. clear H.
         assert (removeh (secondh (x1 :: x2 :: h0)) (x1 :: x2 :: h0) = x1 :: h0).
         { unfold secondh.
@@ -3257,10 +3269,8 @@ Proof.
                     apply sorted_split_right with (l1:=[x1]).
                     apply Hs0.
                 - rewrite H1 in Hs0.
-                  assert (sorted [x1;a]).
-                  { apply sorted_split_left with (l2:=l).
-                    apply Hs0. }
-                  inversion H. simpl in H7. apply H7. }
+                  apply sorted_inv with (l:=a :: l).
+                  apply Hs0. }
               assert (mu h1 hh0 < mu h1 hh0) as Ec.
               { apply lt_le_trans with (m:=mu1 h0 h1).
                 - apply Hd.
@@ -3341,11 +3351,10 @@ Proof.
     - rewrite H1 in Hs0.
       apply sorted_split_right with (l1:=[x1;a]).
       apply Hs0.
-    - assert (sorted (a :: l)).
-      { rewrite H1 in Hs0.
-        apply sorted_split_right with (l1:=[x1]).
-        apply Hs0. }
-      inversion H. simpl in H7. apply H7. }
+    - rewrite H1 in Hs0.
+      apply sorted_inv.
+      apply sorted_split_right with (l1:=[x1]).
+      apply Hs0. }
   (* 結論 *)
   destruct Hk0 as [Hk0 | Hk0].
   - apply le_trans with (m:=mu1 h0 h1).
@@ -3360,9 +3369,9 @@ Proof.
 Qed.
 
 
-(***********************************)
+(*********************************)
 (* μ0 < μ1 のときどの手でも負けの補題 *)
-(***********************************)
+(*********************************)
 
 (* 補題 : パスで勝てない *)
 Lemma lose_move_pass : forall (h0 h1 : hand) (r : nat),
@@ -3411,9 +3420,9 @@ Proof.
           - apply Hmu0.
           - unfold mu1.
             assert (S (counth (removeminh h1)) = counth h1) as Ec.
-            { unfold removeminh. 
+            { unfold removeminh.
               apply remove_length_in.
-              apply min_in. 
+              apply min_in.
               apply Hs1. }
             rewrite <- Ec.
             apply le_lt_n_Sm.
@@ -3520,29 +3529,25 @@ Proof.
              rewrite <- E.
              rewrite sorted_insert_cons.
              apply mu_compare_hd2.
-             ++ split. apply Hs1.
-                apply sorted_split_right with (l1:=[x1]). 
-                apply Hs0.
-             ++ assert (sorted [x1;x2]).
-                { apply sorted_split_left with (l1:=[x1;x2]) (l2:=h0). 
-                  apply Hs0. }
-                inversion H. simpl in H3. apply H3.
+             ++ split.
+                ** apply Hs1.
+                ** apply sorted_split_right with (l1:=[x1]).
+                   apply Hs0.
+             ++ destruct Hs0 as [Hs0 _].
+                inversion Hs0. simpl in H2. apply H2.
              ++ apply sorted_split_right with (l1:=[x1;x2]).
                 apply Hs0.
-             ++ destruct h0 as [| x3 h0].
-                ** simpl.
-                   reflexivity.
-                ** simpl.
-                   apply sorted_all_le with (l1:=[]) (l2:=[x2]) (l3:=h0).
-                   apply Hs0.
-          -- { apply sorted_split_right with (l1:=[x1]). 
+             ++ apply sorted_inv.
+                apply sorted_remove_middle with (l1:=[x1]) (l2:=[x2]).
+                apply Hs0.
+          -- { apply sorted_split_right with (l1:=[x1]).
               apply Hs0. }
           -- apply Hs0.
       + (* 二番目以降の札を出した場合 *)
         rewrite !unfold_removeminh.
         * rewrite sorted_remove_insert.
           -- reflexivity.
-          -- apply sorted_split_right with (l1:=[x1]). 
+          -- apply sorted_split_right with (l1:=[x1]).
              apply Hs0.
           -- destruct Hp as [Hp | Hp].
              ++ apply Nat.eqb_eq in Hp.
@@ -3584,7 +3589,7 @@ Proof.
     unfold counth in Hc0.
     rewrite Hc0. auto.
   - apply Hr.
-  - apply InductiveTerm.
+  - apply InductiveTermLose.
     + apply Hc1.
     + apply eq_add_S.
       rewrite remove_length_in.
@@ -3614,6 +3619,7 @@ Proof.
     + split. apply Hc1. rewrite Hc0. auto.
     + apply Hr1.
 Qed.
+
 
 
 (*******************)
@@ -3705,9 +3711,9 @@ Proof.
 Qed.
 
 
-(************************************************)
+(***********************************************)
 (* induction steps : 以下の順番でないと証明できない *)
-(************************************************)
+(***********************************************)
 
 (* induction step : μ0 > μ1 で出せる札があれば勝ちの手がある *)
 Lemma mu_win_puttable_step : forall n : nat,
