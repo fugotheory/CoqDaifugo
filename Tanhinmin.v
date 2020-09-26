@@ -1,9 +1,3 @@
-Require Import Coq.Init.Nat.
-Require Import Coq.Init.Datatypes.
-Require Import Coq.Arith.Arith.
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Arith.Compare.
-Require Import Coq.Bool.Bool.
 Require Import Coq.Lists.List.
 Require Import Arith.
 Import ListNotations.
@@ -24,46 +18,50 @@ Definition counth (h : hand) := length h.
 Definition removeh := list_remove.
 Definition containsh (a : nat) (h : hand) := In a h.
 
-Inductive inductive_result_is : bool -> hand -> hand -> nat -> Prop :=
-  | InductiveTermLose
+Inductive inductive_lose : hand -> hand -> nat -> Prop :=
+  | InductiveTermLose (* 終端 : 負け *)
       (h0 h1 : hand) (r : nat)
       (Hc0 : 0 < counth h0) (Hc1 : counth h1 = 0) :
-      inductive_result_is false h0 h1 r
-  | InductivePutWin
-      (h0 h1 : hand) (r a : nat)
-      (Hp : containsh a h0) (Hr : r < a)
-      (Hn : inductive_result_is false h1 (removeh a h0) a) :
-      inductive_result_is true h0 h1 r
-  | InductivePassWin
+      inductive_lose h0 h1 r
+  | InductiveLose (* 札を出してもパスしても負け *)
       (h0 h1 : hand) (r : nat)
-      (Hn : inductive_result_is false h1 h0 0) :
-      inductive_result_is true h0 h1 r
-  | InductiveLose
-      (h0 h1 : hand) (r : nat)
+      (Hc0 : 0 < counth h0)
       (Hput : forall a : nat,
               containsh a h0 -> r < a ->
-              inductive_result_is true h1 (removeh a h0) a)
-      (Hpass : inductive_result_is true h1 h0 0) :
-      inductive_result_is false h0 h1 r.
+              inductive_win h1 (removeh a h0) a)
+      (Hpass : inductive_win h1 h0 0) :
+      inductive_lose h0 h1 r
+with inductive_win : hand -> hand -> nat -> Prop :=
+  | InductiveWin (* 札を出して、もしくはパスして勝ち *)
+      (h0 h1 : hand) (r : nat)
+      (Hn : (exists a, containsh a h0 /\ r < a /\
+               inductive_lose h1 (removeh a h0) a) \/
+            inductive_lose h1 h0 0) :
+      inductive_win h0 h1 r.
 
-Example inductive_result_test1 : inductive_result_is false [2] [] 1.
+Example inductive_result_test1 : inductive_lose [2] [] 1.
 Proof.
   apply InductiveTermLose.
   - simpl. auto.
   - simpl. reflexivity.
 Qed.
 
-Example inductive_result_test2 : inductive_result_is true [1] [2] 0.
+Example inductive_result_test2 : inductive_win [1] [2] 0.
 Proof.
-  apply InductivePutWin with (a:=1).
+  apply InductiveWin.
+  left.
+  exists 1.
+  split.
   - simpl. auto.
-  - auto.
-  - apply inductive_result_test1.
+  - split.
+    + auto.
+    + apply inductive_result_test1.
 Qed.
 
-Example inductive_result_test3 : inductive_result_is false [2] [1;2] 2.
+Example inductive_result_test3 : inductive_lose [2] [1;2] 2.
 Proof.
   apply InductiveLose.
+  - auto.
   - intros a Hp Hr.
     simpl in Hp.
     destruct Hp.
@@ -71,19 +69,24 @@ Proof.
       apply Nat.lt_irrefl in Hr.
       contradiction Hr.
     + contradiction H.
-  - apply InductivePutWin with (a:=2).
+  - apply InductiveWin.
+    left.
+    exists 2.
+    split.
     + simpl. auto.
-    + auto.
-    + simpl.
-      apply InductiveLose.
-      * intros a Hp Hr.
-        simpl in Hp.
-        destruct Hp.
-        -- rewrite H in Hr.
-           apply Nat.lt_irrefl in Hr.
-           contradiction Hr.
-        -- contradiction H.
-      * apply inductive_result_test2.
+    + split.
+      * auto.
+      * simpl.
+        apply InductiveLose.
+        -- auto.
+        -- intros a Hp Hr.
+           simpl in Hp.
+           destruct Hp.
+           ++ rewrite H in Hr.
+              apply Nat.lt_irrefl in Hr.
+              contradiction Hr.
+           ++ contradiction H.
+        -- apply inductive_result_test2.
 Qed.
 
 
@@ -172,11 +175,11 @@ Proof. reflexivity. Qed.
 
 Definition mu_lose_cond (h0 h1 : hand) (r : nat) : Prop :=
   mu0 h0 h1 r <= mu1 h0 h1 ->
-  inductive_result_is false h0 h1 r.
+  inductive_lose h0 h1 r /\ ~ inductive_win h0 h1 r.
 
 Definition mu_win_cond (h0 h1 : hand) (r : nat) : Prop :=
   mu0 h0 h1 r > mu1 h0 h1 ->
-  inductive_result_is true h0 h1 r.
+  inductive_win h0 h1 r /\ ~ inductive_lose h0 h1 r.
 
 
 (*****************)
@@ -287,7 +290,7 @@ Proof.
   - simpl.
     destruct l as [| x2 l].
     + simpl.
-      rewrite max_0_r.
+      rewrite Nat.max_0_r.
       reflexivity.
     + apply le_trans with (m:=x1).
       * apply Nat.le_min_l.
@@ -304,7 +307,7 @@ Proof.
   - destruct l.
     + simpl.
       symmetry.
-      apply max_0_r.
+      apply Nat.max_0_r.
     + simpl in H.
       apply eq_add_S in H.
       discriminate H.
@@ -555,7 +558,7 @@ Proof.
     rewrite H0. clear H0.
     simpl.
     destruct (x1 =? a).
-    + apply le_min_r.
+    + apply Nat.le_min_r.
     + assert (length l <= 1 \/ 1 < length l).
       { apply Nat.le_gt_cases. }
       destruct H0.
@@ -570,7 +573,7 @@ Proof.
            subst.
            simpl.
            destruct (x2 =? a).
-           ++ apply le_min_l.
+           ++ apply Nat.le_min_l.
            ++ simpl.
               reflexivity.
       * assert (list_min (x1 :: list_remove a l)
@@ -975,11 +978,11 @@ Proof.
   - intros.
     simpl.
     destruct l.
-    + apply max_0_r.
+    + apply Nat.max_0_r.
     + simpl.
       inversion H.
       simpl in H3.
-      rewrite max_assoc.
+      rewrite Nat.max_assoc.
       rewrite max_r with (n:=a).
       * simpl in IHl.
         apply IHl.
@@ -1205,7 +1208,7 @@ Proof.
         apply leb_complete_conv in E.
         rewrite Heqy' in E.
         apply lt_n_Sm_le in E.
-        apply max_lub.
+        apply Nat.max_lub.
         -- apply E.
         -- apply IHl.
            ++ inversion Hs. apply H1.
@@ -2193,7 +2196,7 @@ Proof.
       simpl.
       subst.
       assert (x1 <= y) as E1.
-      { apply max_lub_l in Hr.
+      { apply Nat.max_lub_l in Hr.
         apply Hr. }
       apply Nat.ltb_ge in E1.
       rewrite E1.
@@ -2202,7 +2205,7 @@ Proof.
         rewrite <- mu_nil_0_r with (l:=l1).
         apply IHl1 with (l2:=[]).
         -- inversion Hs1. apply H1.
-        -- apply max_lub_r in Hr.
+        -- apply Nat.max_lub_r in Hr.
            apply Hr.
         -- apply Hs2.
       * simpl.
@@ -2214,7 +2217,7 @@ Proof.
         rewrite E2.
         apply IHl1 with (l2:=[]).
         -- inversion Hs1. apply H1.
-        -- apply max_lub_r in Hr.
+        -- apply Nat.max_lub_r in Hr.
            apply Hr.
         -- apply Hs2.
     + simpl.
@@ -2222,12 +2225,12 @@ Proof.
       * apply eq_S.
         apply IHl1.
         -- inversion Hs1. apply H1.
-        -- apply max_lub_r in Hr.
+        -- apply Nat.max_lub_r in Hr.
            apply Hr.
         -- inversion Hs2. apply H1.
       * apply IHl1 with (l2:=y1 :: l2).
         -- inversion Hs1. apply H1.
-        -- apply max_lub_r in Hr.
+        -- apply Nat.max_lub_r in Hr.
            apply Hr.
         -- apply Hs2.
 Qed.
@@ -3574,6 +3577,118 @@ Proof.
 Qed.
 
 
+(*********)
+(* 逆方向 *)
+(*********)
+
+(* 補題 : 次局面のすべてが「負けでない」場合は勝ちでない *)
+Lemma InductiveLoseNotWin : forall (h0 h1 : hand) (r : nat),
+  0 < counth h0 ->
+  (forall a : nat,
+     containsh a h0 -> r < a ->
+     inductive_win h1 (removeh a h0) a /\ ~ inductive_lose h1 (removeh a h0) a) ->
+  inductive_win h1 h0 0 /\ ~ inductive_lose h1 h0 0 ->
+  inductive_lose h0 h1 r /\ ~ inductive_win h0 h1 r.
+Proof.
+  intros h0 h1 r Hc Hput Hpass.
+  split.
+  - apply InductiveLose.
+    + apply Hc.
+    + apply Hput.
+    + apply Hpass.
+  - intros Hw.
+    inversion Hw.
+    destruct Hn as [[a [Hp [Hr Hn]]] | Hn].
+    + apply Hput with (a:=a).
+      * apply Hp.
+      * apply Hr.
+      * apply Hn.
+    + apply Hpass.
+      apply Hn.
+Qed.
+
+(* 補題 : 札を出した次局面に「勝ちでない」局面があれば負けでない *)
+Lemma InductivePutWinNotLose : forall (h0 h1 : hand) (r a : nat),
+  0 < counth h1 ->
+  containsh a h0 -> r < a ->
+  inductive_lose h1 (removeh a h0) a /\ ~ inductive_win h1 (removeh a h0) a ->
+  inductive_win h0 h1 r /\ ~ inductive_lose h0 h1 r.
+Proof.
+  intros h0 h1 r a Hc Hp Hr [Hl Hnw].
+  split.
+  - apply InductiveWin.
+    left.
+    exists a.
+    split.
+    + apply Hp.
+    + split.
+      * apply Hr.
+      * apply Hl.
+  - intros Hl2.
+    apply Hnw.
+    inversion Hl2.
+    + rewrite Hc1 in Hc.
+      inversion Hc.
+    + apply Hput.
+      * apply Hp.
+      * apply Hr.
+Qed.
+
+(* 補題 : パスをした次局面が「勝ちでない」局面であれば負けでない *)
+Lemma InductivePassWinNotLose : forall (h0 h1 : hand) (r : nat),
+  (inductive_lose h1 h0 0 /\ ~ inductive_win h1 h0 0) ->
+  inductive_win h0 h1 r /\ ~ inductive_lose h0 h1 r.
+Proof.
+  intros h0 h1 r [Hl Hnw].
+  split.
+  - apply InductiveWin.
+    right.
+    apply Hl.
+  - intros Hl2.
+    apply Hnw.
+    inversion Hl2.
+    + apply InductiveWin.
+      right.
+      apply InductiveTermLose.
+      * apply Hc0.
+      * apply Hc1.
+    + apply Hpass.
+Qed.
+
+(* 補題 : 自手札が0枚であれば負けでない *)
+Lemma InductiveTermNotLose : forall (h0 h1 : hand) (r : nat),
+  counth h0 = 0 ->
+  ~ inductive_lose h0 h1 r.
+Proof.
+  intros h0 h1 r Hcz0 H.
+  induction H.
+  - rewrite Hcz0 in Hc0.
+    inversion Hc0.
+  - rewrite Hcz0 in Hc0.
+    inversion Hc0.
+Qed.
+
+(* 補題 : 相手手札が0枚であれば勝ちでない *)
+Lemma InductiveTermNotWin : forall (h0 h1 : hand) (r : nat),
+  counth h1 = 0 ->
+  ~ inductive_win h0 h1 r.
+Proof.
+  intros h0 h1 r Hcz1 Hw.
+  induction Hw.
+  destruct Hn as [[a [Hp [Hr Hn]]] | Hn].
+  - inversion Hn.
+    + rewrite Hcz1 in Hc0.
+      inversion Hc0.
+    + rewrite Hcz1 in Hc0.
+      inversion Hc0.
+  - inversion Hn.
+    + rewrite Hcz1 in Hc0.
+      inversion Hc0.
+    + rewrite Hcz1 in Hc0.
+      inversion Hc0.
+Qed.
+
+
 (***********)
 (* 終端局面 *)
 (***********)
@@ -3581,31 +3696,38 @@ Qed.
 (* 終端 : 手札一枚で出せれば一手勝ち *)
 Lemma mu_win_term : forall (h0 h1 : hand) (r : nat),
   counth h0 = 1 /\ 0 < counth h1 -> r < minh h0 ->
-  inductive_result_is true h0 h1 r.
+  inductive_win h0 h1 r /\ ~ inductive_lose h0 h1 r.
 Proof.
   intros h0 h1 r [Hc0 Hc1] Hr.
-  apply InductivePutWin with (a:=minh h0).
+  apply InductivePutWinNotLose with (a:=minh h0).
+  - apply Hc1.
   - apply min_in.
     unfold counth in Hc0.
     rewrite Hc0. auto.
   - apply Hr.
-  - apply InductiveTermLose.
-    + apply Hc1.
-    + apply eq_add_S.
+  - assert (counth (removeh (minh h0) h0) = 0) as Hc.
+    { apply eq_add_S.
       rewrite remove_length_in.
-      * apply Hc0.
-      * apply min_in.
+      - apply Hc0.
+      - apply min_in.
         unfold counth in Hc0.
-        rewrite Hc0. auto.
+        rewrite Hc0. auto. }
+    + split.
+      * apply InductiveTermLose.
+        -- apply Hc1.
+        -- apply Hc.
+      * apply InductiveTermNotWin.
+        apply Hc.
 Qed.
 
 (* 終端 : 手札一枚ずつで出せずにパスで負け *)
 Lemma mu_lose_term : forall (h0 h1 : hand) (r : nat),
   counth h0 = 1 /\ counth h1 = 1 -> minh h0 <= r -> 0 < minh h1 ->
-  inductive_result_is false h0 h1 r.
+  inductive_lose h0 h1 r /\ ~ inductive_win h0 h1 r.
 Proof.
   intros h0 h1 r [Hc0 Hc1] Hr0 Hr1.
-  apply InductiveLose.
+  apply InductiveLoseNotWin.
+  - rewrite Hc0. auto.
   - (* 出す手の検証 -> 無い *)
     intros a Hp Hv.
     assert (maxh h0 <= r) as Hc0r.
@@ -3619,7 +3741,6 @@ Proof.
     + split. apply Hc1. rewrite Hc0. auto.
     + apply Hr1.
 Qed.
-
 
 
 (*******************)
@@ -3742,7 +3863,7 @@ Proof.
       * destruct h0.
         -- simpl.
            simpl in Hv.
-           rewrite max_0_r in Hv.
+           rewrite Nat.max_0_r in Hv.
            apply Hv.
         -- simpl in Hc.
            apply le_S_n in Hc.
@@ -3751,7 +3872,8 @@ Proof.
   - assert (minh h0 <= r \/ r < minh h0) as Hr.
     { apply Nat.le_gt_cases. }
     destruct Hr as [Hr | Hr].
-    + apply InductivePutWin with (a:=mingth h0 r).
+    + apply InductivePutWinNotLose with (a:=mingth h0 r).
+      * apply Hs1.
       * apply mingt_in_if_gt.
         apply mingt_gt_if_max_gt.
         apply Hv.
@@ -3785,7 +3907,8 @@ Proof.
         - left. reflexivity.
         - right. reflexivity. }
       destruct Hcond as [Hcond | Hcond].
-      * apply InductivePutWin with (a:=minh h0).
+      * apply InductivePutWinNotLose with (a:=minh h0).
+        -- apply Hs1.
         -- apply min_in.
            apply Hs0.
         -- apply Hr.
@@ -3809,7 +3932,8 @@ Proof.
               ** apply Hr.
               ** apply Hcond.
               ** apply Hmu.
-      * apply InductivePutWin with (a:=secondh h0).
+      * apply InductivePutWinNotLose with (a:=secondh h0).
+        -- apply Hs1.
         -- apply nth_min_in.
            apply Hc.
         -- apply lt_le_trans with (m:=minh h0).
@@ -3851,7 +3975,8 @@ Lemma mu_lose_step : forall n : nat,
   mu_lose_cond h0 h1 r.
 Proof.
   intros n H h0 h1 r Hn [Hs0 Hs1] Hmu.
-  apply InductiveLose.
+  apply InductiveLoseNotWin.
+  - apply Hs0.
   - (* 札を出す手 *)
     assert (counth h0 <= 1 \/ 1 < counth h0) as Hr.
     { apply Nat.le_gt_cases. }
@@ -3925,7 +4050,7 @@ Lemma mu_win_not_puttable_step : forall n : nat,
   maxh h0 <= r -> mu_win_cond h0 h1 r.
 Proof.
   intros n H h0 h1 r Hn [Hs0 Hs1] Hv Hmu.
-  apply InductivePassWin.
+  apply InductivePassWinNotLose.
   apply mu_lose_step with (n:=n).
   - apply H.
   - rewrite plus_comm.
@@ -4033,12 +4158,7 @@ Proof.
       * apply Hs.
 Qed.
 
-
-(**************)
-(* 順方向の定理 *)
-(**************)
-
-Theorem mu_win_lose : forall (h0 h1 : hand) (r : nat),
+Lemma mu_win_lose_all : forall (h0 h1 : hand) (r : nat),
   ap_sorted h0 /\ ap_sorted h1 ->
   mu_win_cond h0 h1 r /\ mu_lose_cond h0 h1 r.
 Proof.
@@ -4046,4 +4166,65 @@ Proof.
   apply mu_win_lose_n with (n:=counth h0 + counth h1).
   - reflexivity.
   - apply H.
+Qed.
+
+
+(*******)
+(* 結論 *)
+(*******)
+
+(* 定理 : 勝ち <-> μ0 > μ1 *)
+Theorem mu_win_iff : forall (h0 h1 : hand) (r : nat),
+  0 < counth h0 /\ 0 < counth h1 ->
+  0 < minh h0 /\ 0 < minh h1 ->
+  sorted h0 /\ sorted h1 ->
+  inductive_win h0 h1 r <-> mu0 h0 h1 r > mu1 h0 h1.
+Proof.
+  intros h0 h1 r Hc Hm Hs.
+  assert (ap_sorted h0 /\ ap_sorted h1) as Haps.
+  { split.
+    - split.
+      + apply Hs.
+      + split. apply Hc. apply Hm.
+    - split.
+      + apply Hs.
+      + split. apply Hc. apply Hm. }
+  split.
+  - intros H.
+    apply not_le.
+    intros Hmu.
+    apply mu_win_lose_all in Hmu.
+    + apply Hmu in H.
+      apply H.
+    + apply Haps.
+  - apply mu_win_lose_all.
+    apply Haps.
+Qed.
+
+(* 定理 : 負け <-> μ0 <= μ1 *)
+Theorem mu_lose_iff : forall (h0 h1 : hand) (r : nat),
+  0 < counth h0 /\ 0 < counth h1 ->
+  0 < minh h0 /\ 0 < minh h1 ->
+  sorted h0 /\ sorted h1 ->
+  mu0 h0 h1 r <= mu1 h0 h1 <-> inductive_lose h0 h1 r.
+Proof.
+  intros h0 h1 r Hc Hm Hs.
+  assert (ap_sorted h0 /\ ap_sorted h1) as Haps.
+  { split.
+    - split.
+      + apply Hs.
+      + split. apply Hc. apply Hm.
+    - split.
+      + apply Hs.
+      + split. apply Hc. apply Hm. }
+  split.
+  - apply mu_win_lose_all.
+    apply Haps.
+  - intros H.
+    apply not_gt.
+    intros Hmu.
+    apply mu_win_lose_all in Hmu.
+    + apply Hmu in H.
+      apply H.
+    + apply Haps.
 Qed.
