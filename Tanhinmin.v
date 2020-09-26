@@ -3581,7 +3581,7 @@ Qed.
 (* 逆方向 *)
 (*********)
 
-(* 補題 : 次局面のすべてが「負けでない」場合は勝ちでない *)
+(* 補題 : 次局面のすべてが「勝ち」かつ「負けでない」場合は「負け」かつ「勝ちでない」 *)
 Lemma InductiveLoseNotWin : forall (h0 h1 : hand) (r : nat),
   0 < counth h0 ->
   (forall a : nat,
@@ -3607,7 +3607,7 @@ Proof.
       apply Hn.
 Qed.
 
-(* 補題 : 札を出した次局面に「勝ちでない」局面があれば負けでない *)
+(* 補題 : 札を出した次局面に「負け」かつ「勝ちでない」局面があれば「勝ち」かつ「負けでない」 *)
 Lemma InductivePutWinNotLose : forall (h0 h1 : hand) (r a : nat),
   0 < counth h1 ->
   containsh a h0 -> r < a ->
@@ -3634,7 +3634,7 @@ Proof.
       * apply Hr.
 Qed.
 
-(* 補題 : パスをした次局面が「勝ちでない」局面であれば負けでない *)
+(* 補題 : パスをした次局面が「負け」かつ「勝ちでない」局面であれば「勝ち」かつ「負けでない」 *)
 Lemma InductivePassWinNotLose : forall (h0 h1 : hand) (r : nat),
   (inductive_lose h1 h0 0 /\ ~ inductive_win h1 h0 0) ->
   inductive_win h0 h1 r /\ ~ inductive_lose h0 h1 r.
@@ -4206,7 +4206,7 @@ Theorem mu_lose_iff : forall (h0 h1 : hand) (r : nat),
   0 < counth h0 /\ 0 < counth h1 ->
   0 < minh h0 /\ 0 < minh h1 ->
   sorted h0 /\ sorted h1 ->
-  mu0 h0 h1 r <= mu1 h0 h1 <-> inductive_lose h0 h1 r.
+  inductive_lose h0 h1 r <-> mu0 h0 h1 r <= mu1 h0 h1.
 Proof.
   intros h0 h1 r Hc Hm Hs.
   assert (ap_sorted h0 /\ ap_sorted h1) as Haps.
@@ -4218,8 +4218,6 @@ Proof.
       + apply Hs.
       + split. apply Hc. apply Hm. }
   split.
-  - apply mu_win_lose_all.
-    apply Haps.
   - intros H.
     apply not_gt.
     intros Hmu.
@@ -4227,4 +4225,6 @@ Proof.
     + apply Hmu in H.
       apply H.
     + apply Haps.
+  - apply mu_win_lose_all.
+    apply Haps.
 Qed.
