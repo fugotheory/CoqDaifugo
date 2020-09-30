@@ -5,7 +5,7 @@ wonderful theory of Daifugo games
 
 Theorems about Daifugo games were proven with Coq, a reliable proof asistant.
 
-## 二人単貧民の基本定理 The main theorem of Tanhinmin
+## 二人単貧民の基本定理 The basic theorem of two-player Tanhinmin
 
 単貧民は二人、一枚出し、特殊ルールなしの大富豪です。  
 二人単貧民はゲーム木探索を用いずとも以下のように勝敗を計算できます。
@@ -27,7 +27,7 @@ Theorems about Daifugo games were proven with Coq, a reliable proof asistant.
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=\dpi{300}&space;\mu&space;(X,&space;\bar{X}_{-}&space;&plus;&space;\{r\})&space;>&space;\mu&space;(\bar{X},&space;X_{-})\text{.}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\dpi{300}&space;\mu&space;(X,&space;\bar{X}_{-}&space;&plus;&space;\{r\})&space;>&space;\mu&space;(\bar{X},&space;X_{-})\text{.}" title="\mu (X, \bar{X}_{-} + \{r\}) > \mu (\bar{X}, X_{-})\text{.}" /></a>
 
-### 例
+### Example
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=\dpi{150}&space;X&space;=&space;\{1,&space;1,&space;3,&space;4\},&space;\bar{X}&space;=&space;\{1,&space;2,&space;3,&space;5\},&space;r&space;=&space;0" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\dpi{150}&space;X&space;=&space;\{1,&space;1,&space;3,&space;4\},&space;\bar{X}&space;=&space;\{1,&space;2,&space;3,&space;5\},&space;r&space;=&space;0" title="X = \{1, 1, 3, 4\}, \bar{X} = \{1, 2, 3, 5\}, r = 0" /></a>
 
@@ -37,6 +37,9 @@ Theorems about Daifugo games were proven with Coq, a reliable proof asistant.
 
 よって **先手必勝**
 
+## Requirements
+
+Coq >= 8.12.0
 
 ## 命題一覧
 
