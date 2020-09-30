@@ -190,7 +190,7 @@ Definition mu_win_cond (h0 h1 : hand) (r : nat) : Prop :=
 Lemma min_lt_l : forall p q : nat, min p q < p -> min p q = q.
 Proof.
   intros p q H.
-  assert (q <= p \/ p < q).
+  assert (q <= p \/ p < q) as H0.
   { apply Nat.le_gt_cases. }
   destruct H0.
   - apply min_r in H0.
@@ -206,7 +206,7 @@ Qed.
 Lemma max_lt_l : forall p q : nat, p < max p q -> max p q = q.
 Proof.
   intros p q H.
-  assert (p <= q \/ q < p).
+  assert (p <= q \/ q < p) as H0.
   { apply Nat.le_gt_cases. }
   destruct H0.
   - apply max_r in H0.
@@ -236,7 +236,7 @@ Proof.
     + simpl.
       left.
       reflexivity.
-    + assert (x1 <= list_min (x2 :: l) \/ list_min (x2 :: l) < x1).
+    + assert (x1 <= list_min (x2 :: l) \/ list_min (x2 :: l) < x1) as H0.
       { apply Nat.le_gt_cases. }
       destruct H0.
       * left.
@@ -261,7 +261,7 @@ Proof.
   - simpl in H.
     inversion H.
   - simpl.
-    assert (x1 < (list_max l) \/ (list_max l) <= x1).
+    assert (x1 < (list_max l) \/ (list_max l) <= x1) as H0.
     { apply Nat.lt_ge_cases. }
     destruct H0.
     + right.
@@ -382,7 +382,7 @@ Qed.
 Lemma remove_length_in : forall (l : list nat) (a : nat),
   In a l -> S (length (list_remove a l)) = length l.
 Proof.
-  intros.
+  intros l a H.
   induction l as [| x1 l].
   - simpl in H.
     contradiction H.
@@ -455,7 +455,7 @@ Lemma remove_split : forall (l : list nat) (a : nat),
   exists l1 l2 : list nat,
   l = l1 ++ a :: l2 /\ list_remove a l = l1 ++ l2.
 Proof.
-  intros.
+  intros l a H.
   exists (removed_list_left a l).
   exists (removed_list_right a l).
   induction l as [| x1 l].
@@ -535,7 +535,7 @@ Qed.
 Lemma min_cons : forall (a : nat) (l : list nat),
   0 < length l -> list_min (a :: l) = min a (list_min l).
 Proof.
-  intros.
+  intros a l H.
   destruct l as [| x l].
   - simpl in H.
     inversion H.
@@ -547,19 +547,19 @@ Qed.
 Lemma min_le_remove_min : forall (a : nat) (l : list nat),
   1 < length l -> list_min l <= list_min (list_remove a l).
 Proof.
-  intros.
+  intros a l H.
   induction l as [| x1 l].
   - simpl in H.
     inversion H.
   - simpl in H.
     apply lt_S_n in H.
-    assert (list_min (x1 :: l) = min x1 (list_min l)).
+    assert (list_min (x1 :: l) = min x1 (list_min l)) as H0.
     { apply min_cons. apply H. }
     rewrite H0. clear H0.
     simpl.
     destruct (x1 =? a).
     + apply Nat.le_min_r.
-    + assert (length l <= 1 \/ 1 < length l).
+    + assert (length l <= 1 \/ 1 < length l) as H0.
       { apply Nat.le_gt_cases. }
       destruct H0.
       * destruct l as [| x2 l].
@@ -577,7 +577,7 @@ Proof.
            ++ simpl.
               reflexivity.
       * assert (list_min (x1 :: list_remove a l)
-                = min x1 (list_min (list_remove a l))).
+                = min x1 (list_min (list_remove a l))) as H1.
         { apply min_cons.
           apply lt_S_n.
           apply lt_le_trans with (m:=length l).
@@ -594,7 +594,7 @@ Lemma in_range_min_max : forall (l : list nat) (a : nat),
   In a l ->
   list_min l <= a <= list_max l.
 Proof.
-  intros.
+  intros l a H.
   split.
   - induction l as [| x1 l].
     + simpl in H.
@@ -638,7 +638,7 @@ Lemma mingt_gt_if_max_gt : forall (l : list nat) (r : nat),
   r < list_max l ->
   r < list_mingt l r.
 Proof.
-  intros.
+  intros l r H.
   induction l as [| x1 l].
   - simpl in H.
     inversion H.
@@ -669,7 +669,6 @@ Proof.
       assert (x1 < Init.Nat.max x1 (list_max l)) as E2.
       { apply le_lt_trans with (m:=r).
         apply E1. apply H. }
-SearchPattern(_ < max _ _ -> _).
       apply max_lt_l in E2.
       rewrite E2 in H.
       apply H.
@@ -680,7 +679,7 @@ Lemma mingt_in_if_gt : forall (l : list nat) (r : nat),
   r < list_mingt l r ->
   In (list_mingt l r) l.
 Proof.
-  intros.
+  intros l r H.
   induction l as [| x1].
   - simpl in H.
     inversion H.
@@ -740,7 +739,7 @@ Proof.
   - destruct l1.
     + intros.
       apply sorted_one.
-    + intros.
+    + intros l2 H.
       inversion H.
       apply sorted_cons.
       * apply IHl1 with l2.
@@ -756,7 +755,7 @@ Lemma sorted_split_right : forall (l1 l2 : list nat),
 Proof.
   induction l1.
   - trivial.
-  - intros.
+  - intros l2 H.
     inversion H.
     apply IHl1.
     apply H2.
@@ -766,7 +765,7 @@ Qed.
 Lemma sorted_remove_middle_hd : forall (l1 l2 : list nat) (a : nat),
   sorted (a :: l1 ++ l2) -> sorted (a :: l2).
 Proof.
-  intros.
+  intros l1 l2 a H.
   induction l1.
   - apply H.
   - apply IHl1.
@@ -786,7 +785,7 @@ Qed.
 Lemma sorted_remove_middle : forall (l1 l2 l3 : list nat),
   sorted (l1 ++ l2 ++ l3) -> sorted (l1 ++ l3).
 Proof.
-  intros.
+  intros l1 l2 l3 H.
   induction l1.
   - simpl.
     induction l2.
@@ -814,7 +813,7 @@ Qed.
 Lemma sorted_all_le : forall (l1 l2 l3 : list nat) (x1 x2 : nat),
   sorted (l1 ++ x1 :: l2 ++ x2 :: l3) -> x1 <= x2.
 Proof.
-  intros.
+  intros l1 l2 l3 x1 x2 H.
   induction l1 as [| y1 l1].
   - induction l2 as [| z1 l2].
     + simpl in H.
@@ -851,16 +850,16 @@ Qed.
 Lemma sorted_insert_cons : forall (l : list nat) (a : nat),
   sorted l -> a <= hd a l -> sorted_list_insert a l = a :: l.
 Proof.
-  intros.
+  intros l a Hs Hhd.
   induction l as [| x l].
   - reflexivity.
   - simpl.
     destruct (a <=? x) eqn:E.
     + simpl.
       reflexivity.
-    + simpl in H0.
-      apply Nat.leb_le in H0.
-      rewrite H0 in E.
+    + simpl in Hhd.
+      apply Nat.leb_le in Hhd.
+      rewrite Hhd in E.
       discriminate E.
 Qed.
 
@@ -939,7 +938,7 @@ Qed.
 Lemma sorted_inv : forall (l : list nat) (a : nat),
   sorted (a :: l) -> a <= hd a l.
 Proof.
-  intros.
+  intros l a H.
   destruct l as [| x l].
   - simpl.
     reflexivity.
@@ -955,7 +954,7 @@ Lemma sorted_min_is_hd : forall l : list nat,
 Proof.
   induction l.
   - reflexivity.
-  - intros.
+  - intros H.
     simpl.
     destruct l.
     + reflexivity.
@@ -975,7 +974,7 @@ Lemma sorted_max_is_last : forall l : list nat,
 Proof.
   induction l.
   - reflexivity.
-  - intros.
+  - intros H.
     simpl.
     destruct l.
     + apply Nat.max_0_r.
@@ -995,7 +994,7 @@ Lemma sorted_nth_min_is_nth : forall (n : nat) (l : list nat),
   sorted l -> list_nth_min n l = nth n l 0.
 Proof.
   induction n.
-  - intros.
+  - intros l H.
     simpl.
     destruct l as [| x1 l].
     + simpl.
@@ -1004,7 +1003,7 @@ Proof.
       * simpl.
         reflexivity.
       * apply H.
-  - intros.
+  - intros l H.
     simpl.
     destruct l as [| x1 l].
     + simpl.
@@ -1032,7 +1031,7 @@ Proof.
   - simpl in H2.
     contradiction H2.
   - simpl.
-    assert (a <= x1 \/ x1 < a).
+    assert (a <= x1 \/ x1 < a) as H.
     { apply Nat.le_gt_cases. }
     destruct H.
     + destruct (x1 =? a) eqn:E.
@@ -1079,7 +1078,7 @@ Qed.
 Lemma sorted_unif_swap : forall (l : list nat) (a : nat),
   sorted (a :: l ++ [a]) -> a :: l = l ++ [a].
 Proof.
-  intros.
+  intros l a H.
   induction l as [| x1 l].
   - simpl.
     reflexivity.
@@ -1105,7 +1104,7 @@ Lemma sorted_remove_inv : forall (l1 l2 : list nat) (a : nat),
   sorted (l1 ++ a :: l2) ->
   list_remove a (l1 ++ a :: l2) = l1 ++ l2.
 Proof.
-  intros.
+  intros l1 l2 a H.
   induction l1 as [| x1 l1].
   - simpl.
     rewrite Nat.eqb_refl.
@@ -1296,15 +1295,14 @@ Proof.
   induction l1 as [| x1 l1].
   - simpl.
     reflexivity.
-  - intros.
+  - intros l2 y [Hs1 Hs2].
     simpl.
     destruct l2 as [| y1 l2].
     + destruct (y <? x1).
       * rewrite mu_nil_0_r.
         auto.
       * apply Nat.le_0_l.
-    + destruct H as [Hs1 Hs2].
-      inversion Hs1.
+    + inversion Hs1.
       inversion Hs2.
       destruct (y1 <? x1) eqn:E1.
       * destruct (y <? x1) eqn:E2.
@@ -1313,13 +1311,13 @@ Proof.
            split. apply H1. apply H5.
         -- simpl in H6.
            apply Nat.ltb_lt in E1.
-           assert (y < x1).
+           assert (y < x1) as E3.
            { apply le_lt_trans with (m:=y1).
              apply H6. apply E1. }
-           apply Nat.ltb_lt in H7.
-           rewrite H7 in E2.
+           apply Nat.ltb_lt in E3.
+           rewrite E3 in E2.
            discriminate E2.
-      * destruct (y <? x1) eqn:E.
+      * destruct (y <? x1).
         -- apply Nat.le_succ_diag_r.
         -- apply IHl1.
            split. apply H1. apply Hs2.
@@ -1332,15 +1330,14 @@ Proof.
   induction l1 as [| x1 l1].
   - simpl.
     auto.
-  - intros.
+  - intros l2 y [Hs1 Hs2].
     simpl.
     destruct l2 as [| y1 l2].
     + destruct (y <? x1).
       * rewrite mu_nil_0_r.
         reflexivity.
       * apply mu_le_length2.
-    + destruct H as [Hs1 Hs2].
-      inversion Hs1.
+    + inversion Hs1.
       inversion Hs2.
       destruct (y <? x1).
       * destruct (y1 <? x1).
@@ -1367,11 +1364,9 @@ Proof.
   - simpl.
     rewrite mu_nil_0_r.
     reflexivity.
-  - intros.
+  - intros x [Hs1 Hs2].
     simpl.
-    destruct H as [Hs1 Hs2].
     inversion Hs1.
-    inversion Hs2.
     + destruct (y1 <? x).
       * apply mu_cons2_le_S_mu.
         split. apply H1. apply Hs2.
@@ -1386,11 +1381,9 @@ Proof.
   - simpl.
     rewrite mu_nil_0_r.
     auto.
-  - intros.
+  - intros x [Hs1 Hs2].
     simpl.
-    destruct H as [Hs1 Hs2].
     inversion Hs1.
-    inversion Hs2.
     + destruct (y1 <? x).
       * apply le_n_S.
         apply mu_le_mu_cons2.
@@ -2013,17 +2006,17 @@ Lemma mu_ins_le_S_S_mu : forall (l1 l2 l3 l4 : list nat) (x y : nat),
   sorted (l1 ++ x :: l3) /\ sorted (l2 ++ y :: l4) ->
   mu (l1 ++ x :: l3) (l2 ++ y :: l4) <= S (S (mu (l1 ++ l3) (l2 ++ l4))).
 Proof.
-  intros.
+  intros l1 l2 l3 l4 x y H.
   apply le_trans with (m:=S (mu (l1 ++ x :: l3) (l2 ++ l4))).
   - apply mu_ins2_le_S_mu.
     apply H.
   - apply le_n_S.
     apply mu_ins1_le_S_mu.
-    destruct H as [H1 H2].
+    destruct H as [Hs1 Hs2].
     split.
-    + apply H1.
+    + apply Hs1.
     + apply sorted_remove_middle with (l2:=[y]).
-      apply H2.
+      apply Hs2.
 Qed.
 
 (* 補題 : 出せる最小の組の追加（左先頭1つ） *)
@@ -2370,7 +2363,7 @@ Proof.
   generalize dependent l2.
   induction l1 as [| x3 l1].
   - intros.
-    assert (mu [x1] l2 = 0).
+    assert (mu [x1] l2 = 0) as H.
     { apply Nat.le_antisymm.
       - apply le_S_n.
         rewrite <- Hmu.
@@ -2560,7 +2553,7 @@ Qed.
 Lemma unfold_removeminh : forall (h : hand) (a : nat),
   sorted (a :: h) -> removeminh (a :: h) = h.
 Proof.
-  intros.
+  intros h a H.
   unfold removeminh.
   rewrite sorted_min_is_hd.
   - simpl.
@@ -2573,19 +2566,19 @@ Qed.
 Lemma ap_sorted_remove_ap_sorted : forall (h : hand) (a : nat),
   ap_sorted h -> 1 < counth h -> ap_sorted (removeh a h).
 Proof.
-  intros.
+  intros h a Hs Hc.
   split.
   - apply sorted_remove_sorted.
-    apply H.
+    apply Hs.
   - split.
     + apply lt_S_n.
       apply le_trans with (m:=counth h).
-      * apply H0.
+      * apply Hc.
       * apply remove_length.
     + apply lt_le_trans with (m:=list_min h).
-      * apply H.
+      * apply Hs.
       * apply min_le_remove_min.
-        apply H0.
+        apply Hc.
 Qed.
 
 (**************************)
@@ -2597,9 +2590,9 @@ Lemma mu0_le_S_pred_nh1 : forall (h0 h1 : hand) (r : nat),
   0 < counth h1 ->
   mu0 h0 h1 r <= counth h1.
 Proof.
-  intros.
+  intros h0 h1 r H.
   unfold mu0.
-  assert (counth h1 = counth (addh r (removeminh h1))).
+  assert (counth h1 = counth (addh r (removeminh h1))) as H0.
   { rewrite insert_length.
     unfold removeminh.
     symmetry.
@@ -2706,7 +2699,7 @@ Proof.
         apply Hs1.
     - apply Hr. }
   rewrite <- Emu.
-  assert (counth hh1 = pred (counth h1)).
+  assert (counth hh1 = pred (counth h1)) as H.
   { rewrite Heqhh1.
     unfold removeminh.
     apply eq_add_S.
@@ -2744,7 +2737,7 @@ Proof.
            rewrite Hr.
            reflexivity.
         -- apply leb_complete_conv in E.
-           assert (y1 < x0).
+           assert (y1 < x0) as H.
            { apply lt_trans with (m:=r).
              apply E. apply Hr. }
            apply Nat.ltb_lt in H.
@@ -2952,7 +2945,7 @@ Proof.
     destruct h0 as [| z1 h0].
     - simpl in Hc0.
       inversion Hc0.
-    - assert (removeminh (z1 :: h0) = h0).
+    - assert (removeminh (z1 :: h0) = h0) as H.
       { apply unfold_removeminh.
         apply Hs0. }
       rewrite H. clear H.
@@ -2970,7 +2963,7 @@ Proof.
         - apply Hs0. }
       apply Nat.eqb_neq in E.
       rewrite E.
-      assert (removeminh (z1 :: removeh a h0) = removeh a h0).
+      assert (removeminh (z1 :: removeh a h0) = removeh a h0) as H.
       { apply unfold_removeminh.
         apply mingt_gt_if_max_gt in Hr1.
         apply mingt_in_if_gt in Hr1.
@@ -2992,10 +2985,11 @@ Proof.
       + reflexivity.
       + apply sorted_split_right with (l1:=[z1]).
         apply Hs0.
-      + assert (In a (z1 :: h0)).
-        { rewrite H1.
-          rewrite <- Heqa.
-          apply in_elt. }
+      + assert (In a (z1 :: h0)) as H.
+        { rewrite Heqa.
+          apply mingt_in_if_gt.
+          apply mingt_gt_if_max_gt.
+          apply Hr1. }
         simpl in H.
         destruct H.
         * apply Nat.eqb_eq in H.
@@ -3079,24 +3073,24 @@ Proof.
       + rewrite Heqhh0.
         unfold mu0, mu1 in Hcond.
         rewrite Hcond.
-        assert (a = x1).
+        assert (a = x1) as H.
         { rewrite sorted_min_is_hd in Heqa.
           - simpl in Heqa.
             apply Heqa.
           - apply Hs0. }
         rewrite H. clear H.
-        assert (removeh x1 (x1 :: x2 :: h0) = x2 :: h0).
+        assert (removeh x1 (x1 :: x2 :: h0) = x2 :: h0) as H.
         { simpl.
           rewrite Nat.eqb_refl.
           reflexivity. }
         rewrite H. clear H.
-        assert (removeminh (x2 :: h0) = h0).
+        assert (removeminh (x2 :: h0) = h0) as H.
         { rewrite unfold_removeminh.
           - reflexivity.
           - apply sorted_split_right with (l1:=[x1]).
             apply Hs0. }
         rewrite H. clear H.
-        assert (addh x1 h0 = x1 :: h0).
+        assert (addh x1 h0 = x1 :: h0) as H.
         { apply sorted_insert_cons.
           - apply sorted_split_right with (l1:=[x1;x2]).
             apply Hs0.
@@ -3104,7 +3098,7 @@ Proof.
             apply sorted_remove_middle with (l1:=[x1]) (l2:=[x2]).
             apply Hs0. }
         rewrite H. clear H.
-        assert (removeh (secondh (x1 :: x2 :: h0)) (x1 :: x2 :: h0) = x1 :: h0).
+        assert (removeh (secondh (x1 :: x2 :: h0)) (x1 :: x2 :: h0) = x1 :: h0) as H.
         { unfold secondh.
           rewrite sorted_nth_min_is_nth.
           - simpl.
@@ -3191,7 +3185,7 @@ Proof.
       apply Hdiv.
     - right.
       (* μ0の値を確定 *)
-      assert (mu0 h0 h1 r = S (S (mu hh0 hh1))).
+      assert (mu0 h0 h1 r = S (S (mu hh0 hh1))) as H.
       { apply Nat.le_antisymm.
         - unfold mu0.
           rewrite <- Heqhh1.
@@ -3261,7 +3255,7 @@ Proof.
           + destruct Hd as [Hd | Hd].
             * apply Hcond in Hd.
               contradiction Hd.
-            * assert (mu1 h0 h1 <= mu h1 hh0).
+            * assert (mu1 h0 h1 <= mu h1 hh0) as H.
               { unfold mu1.
                 rewrite H2.
                 rewrite Heqhhh0.
@@ -3316,7 +3310,7 @@ Proof.
           symmetry.
           apply H. }
       rewrite <- Hmuc0 in Hmuc1.
-      assert (mu0 h0 h1 r <= S (S (mu1 h1 hh0))).
+      assert (mu0 h0 h1 r <= S (S (mu1 h1 hh0))) as H0.
       { unfold mu0, mu1.
         rewrite <- Heqhh1.
         rewrite <- Heqhhr1.
@@ -3434,7 +3428,7 @@ Proof.
         { assert (mu1 h0 h1 < counth h1 \/ counth h1 <= mu1 h0 h1) as Hdiv2.
           { apply Nat.lt_ge_cases. }
           destruct Hdiv2 as [Hdiv2 | Hdiv2].
-          - assert (mu1 h0 h1 < mu0 h1 h0 0).
+          - assert (mu1 h0 h1 < mu0 h1 h0 0) as H.
             { unfold mu0, mu1.
               remember (removeminh h0) as hh0.
               remember (addh 0 hh0) as hhr0.
@@ -3824,11 +3818,12 @@ Lemma mu_win_lose_base : forall (h0 h1 : hand) (r : nat),
   counth h0 = 1 /\ counth h1 = 1 ->
   mu_win_cond h0 h1 r /\ mu_lose_cond h0 h1 r.
 Proof.
+  intros h0 h1 r Hs Hc.
   split.
   - apply mu_win_base.
-    apply H. apply H0.
+    apply Hs. apply Hc.
   - apply mu_lose_base.
-    apply H. apply H0.
+    apply Hs. apply Hc.
 Qed.
 
 
@@ -3987,7 +3982,7 @@ Proof.
         - apply H0.
         - apply lt_le_S.
           apply Hs0. }
-      assert (mu0 h0 h1 r = 0).
+      assert (mu0 h0 h1 r = 0) as Hmuz0.
       { symmetry.
         apply le_n_0_eq.
         apply Nat.le_trans with (m:=mu1 h0 h1).
@@ -3997,10 +3992,10 @@ Proof.
           rewrite <- Hc0r.
           apply mu0_le_pred_nh0. }
       intros a Hv.
-      apply mu0_eq_0_not_puttable in H1.
-      apply forced_pass_cond with (a:=a) in H1.
+      apply mu0_eq_0_not_puttable in Hmuz0.
+      apply forced_pass_cond with (a:=a) in Hmuz0.
       * intros Hr.
-        exfalso. apply H1.
+        exfalso. apply Hmuz0.
         split. apply Hv. apply Hr.
       * split. apply Hs0. apply Hs1.
     + (* 自分の手札二枚以上 -> 出しても負け条件に遷移 *)
@@ -4129,18 +4124,18 @@ Proof.
   intros n.
   assert (n < 2 \/ 2 <= n).
   { apply Nat.lt_ge_cases. }
-  destruct H.
+  destruct H as [H | H].
   - (* n <= 1 :対象外 *)
     intros h0 h1 r Hn Hs.
-     assert (2 <= n).
+     assert (2 <= n) as H1.
     { rewrite <- Hn.
       replace 2 with (1 + 1).
       - apply plus_le_compat.
         + apply Hs.
         + apply Hs.
       - reflexivity. }
-    apply le_not_lt in H0.
-    apply H0 in H.
+    apply le_not_lt in H1.
+    apply H1 in H.
     contradiction H.
   - induction H as [| n].
     + (* n = 2 : base step *)
@@ -4162,7 +4157,7 @@ Lemma mu_win_lose_all : forall (h0 h1 : hand) (r : nat),
   ap_sorted h0 /\ ap_sorted h1 ->
   mu_win_cond h0 h1 r /\ mu_lose_cond h0 h1 r.
 Proof.
-  intros.
+  intros h0 h1 r H.
   apply mu_win_lose_n with (n:=counth h0 + counth h1).
   - reflexivity.
   - apply H.
