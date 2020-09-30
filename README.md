@@ -41,6 +41,10 @@ Theorems about Daifugo games were proven with Coq, a reliable proof asistant.
 
 Coq >= 8.12.0
 
+## References
+
+木谷裕紀，小野廣隆: 二人単貧民の必勝判定アルゴリズムとその拡張について，火の国情報シンポジウム2018論文集, A3-4 (2018).
+
 ## 命題一覧
 
 ### 数式に関する補題
